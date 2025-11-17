@@ -1,0 +1,17 @@
+baseHardwere.c:8:10:Get_SystemClock	4	static
+baseHardwere.c:13:6:Delay_Init	4	static
+baseHardwere.c:24:6:Delay_ms	24	static
+baseHardwere.c:34:6:delay	16	static
+baseHardwere.c:39:6:SystemClock_Config_rieng	16	static
+baseHardwere.c:67:6:Delay_us	40	static
+baseHardwere.c:103:6:onModulSim	8	static
+baseHardwere.c:113:6:offModulSim	8	static
+baseHardwere.c:124:6:NVIC_config	16	static
+baseHardwere.c:141:6:gpio_init	16	static
+baseHardwere.c:181:6:led_debug_on	8	static
+baseHardwere.c:185:6:led_debug_off	8	static
+baseHardwere.c:189:6:led_SendUartDone	16	static
+baseHardwere.c:199:6:UART2_config_os	24	static
+baseHardwere.c:218:6:USART1_Sim_A7600C1_Config	24	static
+baseHardwere.c:237:6:UART_testchuoi	24	static
+baseHardwere.c:247:6:custom_SendByte	16	static

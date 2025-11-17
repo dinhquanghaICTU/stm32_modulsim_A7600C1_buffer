@@ -1,0 +1,2 @@
+uart.c:4:6:USART1_IRQHandler	16	static
+uart.c:22:6:USART2_IRQHandler	16	static
