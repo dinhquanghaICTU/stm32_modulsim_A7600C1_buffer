@@ -1,8 +1,14 @@
 #include "hardwere.h"
+#include <stdint.h>
+#include <string.h>
 
 static uint32_t micros = 0;
 static uint32_t milis = 0;
 
+volatile uint32_t	systick = 0;
+
+
+sim_config_t	config_sim;
 
 //delay
 uint32_t Get_SystemClock(void)
@@ -163,7 +169,7 @@ void gpio_init (){
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
 
-    gpio.GPIO_Pin = LED_BLUE_STATEMACHINE_PIN;//led debug
+    gpio.GPIO_Pin = LED_GREEN_NETWORK_PIN;//led debug
     gpio.GPIO_Mode = GPIO_Mode_OUT;
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
@@ -179,11 +185,11 @@ void gpio_init (){
 
 //led
 void led_debug_on(){
-	GPIO_SetBits(GPIOB, LED_BLUE_STATEMACHINE_PIN);
+	GPIO_SetBits(GPIOB, LED_GREEN_NETWORK_PIN);
 }
 
 void led_debug_off(){
-	GPIO_ResetBits(GPIOB, LED_BLUE_STATEMACHINE_PIN);
+	GPIO_ResetBits(GPIOB, LED_GREEN_NETWORK_PIN);
 }
 
 void led_SendUartDone(){
@@ -248,3 +254,195 @@ void custom_SendByte(USART_TypeDef* USARTx, uint8_t  data){
 	while(USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
 	USART_SendData(USARTx, data);
 }
+
+
+
+
+
+uint32_t Gettick(){
+	return systick;
+}
+
+void sim_state_machine_init(){
+	config_sim.max_retry = 3; // thu lai  3 lan
+	config_sim.next_State = SIM_IDLE;
+	config_sim.retrycount =0;
+	config_sim.state= SIM_IDLE ;
+	config_sim.timeout = 0;
+	config_sim.timestamp = 0;
+}
+
+// truyen state and timeout
+void set_state (state_machine_t	newState,uint16_t	time_out){
+	config_sim.state= newState;
+	config_sim.timestamp= Gettick();
+	config_sim.timeout= time_out;
+
+	memset((void *) USART1,0, MAX_SIZE);
+	uart1_index= 0;
+}
+
+// KIEM TRA CHUOI TRA VE CO DUNG KHONG
+
+uint8_t Sim_checkResponse(char * key, uint16_t time_out){
+	uint16_t start_Time = Gettick() ;
+
+	while ((Gettick()- start_Time) < time_out){
+		if(strstr((char *)USART1, key) != NULL){
+				return 1;
+			}
+		Delay_ms(10);
+	}
+	return 0;
+}
+
+void step_state_machine(){
+    static uint8_t check_at_done = 0;
+    static uint8_t set_func_done = 0;
+    static uint8_t set_charset_done = 0;
+    static uint8_t set_SMSMODE_done=0;
+
+    switch(config_sim.state){
+        case SIM_IDLE:
+            UART_testchuoi(DEBUG, "[IDLE] Bat dau...\r\n");
+            led_debug_on();
+            check_at_done = 0;
+            set_func_done = 0;
+            config_sim.retrycount = 0;
+            config_sim.state = SIM_POWWER_ON;
+            break;
+
+        case SIM_POWWER_ON:
+            UART_testchuoi(DEBUG, "[POWER_ON] Bat module...\r\n");
+            onModulSim();
+            UART_testchuoi(DEBUG, "Doi 15s...\r\n");
+            Delay_ms(15000);
+            check_at_done = 0;
+            config_sim.state = SIM_CHECK_AT;
+            break;
+
+        case SIM_CHECK_AT:
+            if(check_at_done == 0) {
+                UART_testchuoi(DEBUG, "[CHECK_AT] Gui AT...\r\n");
+                guiLenhAT("AT");
+                check_at_done = 1;
+            }
+
+            if(strstr((char*)uart1_dem, "OK") != NULL) {
+                UART_testchuoi(DEBUG, "[CHECK_AT] OK!\r\n");
+                check_at_done = 0;
+                set_func_done = 0;
+                config_sim.retrycount = 0;
+                config_sim.state = SIM_SET_FULL_FUNC;
+            } else {
+                config_sim.retrycount++;
+                if(config_sim.retrycount >= 3) {
+                    UART_testchuoi(DEBUG, "[CHECK_AT] Qua nhieu lan!\r\n");
+                    check_at_done = 0;
+                    config_sim.state = SIM_ERROR;
+                } else {
+                    UART_testchuoi(DEBUG, "[CHECK_AT] Thu lai...\r\n");
+                    check_at_done = 0;
+                    Delay_ms(2000);
+                }
+            }
+            break;
+
+        case SIM_SET_FULL_FUNC:
+            if(set_func_done == 0) {
+                UART_testchuoi(DEBUG, "[SET_FUNC] AT+CFUN=1...\r\n");
+                guiLenhAT("AT+CFUN=1");
+                set_func_done = 1;
+            }
+
+            if(strstr((char*)uart1_dem, "OK") != NULL) {
+                UART_testchuoi(DEBUG, "[SET_FUNC] OK!\r\n");
+                check_at_done = 0;
+                set_func_done = 0;
+                config_sim.retrycount = 0;
+
+                config_sim.state = SIM_SET_CHARSET;
+            } else {
+                UART_testchuoi(DEBUG, "[SET_FUNC] FAILED!\r\n");
+                set_func_done = 0;
+                config_sim.state = SIM_ERROR;
+            }
+            break;
+
+
+        case SIM_SET_CHARSET:
+        	if(set_charset_done == 0){
+        		 UART_testchuoi(DEBUG, "[CHARSET] AT+CSCS...\r\n");
+        		 guiLenhAT("AT+CSCS=\"IRA\"");
+        		 set_charset_done=1;
+        	}
+        	if(Sim_checkResponse("OK", 2000)) {
+        	     UART_testchuoi(DEBUG, "[CHARSET] OK\r\n");
+        	     check_at_done = 0;
+        	     set_func_done = 0;
+                 config_sim.retrycount = 0;
+        	     set_charset_done = 0;
+        	     config_sim.state= SIM_SET_SMS_MODE;
+
+
+       	    } else {
+       	    	set_charset_done = 0;
+       	    	UART_testchuoi(DEBUG, "[CHARSET] FAILED\r\n");
+       	    	config_sim.state = SIM_ERROR;
+            }
+            break;
+
+
+        case SIM_SET_SMS_MODE:
+        	if(set_SMSMODE_done == 0){
+        		UART_testchuoi(DEBUG, "[SMS_MODE] AT+CMGF=1...\r\n");
+        		guiLenhAT("AT+CMGF=1");
+        		set_SMSMODE_done=1;
+        	}
+        	if(Sim_checkResponse("OK", 2000)) {
+        		check_at_done = 0;
+        		set_func_done = 0;
+                config_sim.retrycount = 0;
+        		set_SMSMODE_done=0;
+        	    UART_testchuoi(DEBUG, "[SMS_MODE] OK\r\n");
+                config_sim.state=SIM_CHECK_NETWORK;
+        	} else {
+                UART_testchuoi(DEBUG, "[SMS_MODE] FAILED\r\n");
+                config_sim.state=SIM_ERROR;
+       	     }
+        	            break;
+
+
+
+
+
+        case SIM_READY:
+            UART_testchuoi(DEBUG, "\r\n=== MODULE SAN SANG ===\r\n");
+            led_debug_off();
+            // Dừng lại
+            break;
+
+        case SIM_ERROR:
+            UART_testchuoi(DEBUG, "[ERROR] Loi!\r\n");
+            for(int i = 0; i < 5; i++){
+                led_debug_on();
+                Delay_ms(100);
+                led_debug_off();
+                Delay_ms(100);
+            }
+            check_at_done = 0;
+            set_func_done = 0;
+            Delay_ms(5000);
+            config_sim.state = SIM_IDLE;
+            break;
+
+        default:
+            config_sim.state = SIM_IDLE;
+            break;
+    }
+}
+
+
+
+
+

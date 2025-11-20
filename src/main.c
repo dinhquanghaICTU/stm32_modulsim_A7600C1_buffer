@@ -1,53 +1,41 @@
 #include "hardwere.h"
 #include <string.h>
 
-volatile uint8_t uart1_dem[MAX_SIZE];
-volatile uint16_t uart1_index = 0;
-volatile uint8_t uart2_dem[MAX_SIZE];
-volatile uint16_t uart2_index = 0;
 
+sim_config_t	config_sim;
 int main(void)
 {
     SystemClock_Config_rieng();
-    Delay_Init();
+    Delay_Init();  
+
     gpio_init();
     NVIC_config();
     UART2_config_os();
     USART1_Sim_A7600C1_Config();
 
-    UART_testchuoi(DEBUG, "\r\n A7600C1 SMS \r\n");
+    UART_testchuoi(DEBUG, "\r\n=== START ===\r\n");
 
-    onModulSim();
-    Delay_ms(15000);
+    sim_state_machine_init();
 
-    guiLenhAT("AT");
-    Delay_ms(1000);
+    while(config_sim.state != SIM_READY && config_sim.state != SIM_ERROR) {
+        step_state_machine();
+        Delay_ms(100);  
+    }
+    if(config_sim.state == SIM_READY) {
+			UART_testchuoi(DEBUG, "Chuan bi gui SMS...\r\n");
+        Delay_ms(2000);
 
-    guiLenhAT("AT+CFUN=1");
-    Delay_ms(5000);
+        config_sim.state = SIM_SEND_SMS;
 
-    guiLenhAT("AT+CSCS=\"IRA\"");
-    Delay_ms(1000);
-
-    guiLenhAT("AT+CMGF=1");
-    Delay_ms(1000);
-
-    guiLenhAT("AT+COPS=0");
-    Delay_ms(8000);
-
-    UART_testchuoi(DEBUG, "GUI SMS ");
-    test_tinnhan("0355549165", "DINH QUANG HA DANG TEST MODUL SIM A7600C1");
-
-    UART_testchuoi(DEBUG, "XONG \r\n");
-
-    for(int i = 0; i < 5; i++) {
-        led_debug_on();
-        Delay_ms(100);
-        led_debug_off();
-        Delay_ms(100);
+        while(config_sim.state == SIM_SEND_SMS ||
+              config_sim.state == SIM_WAIT_SMS_RESPONSE) {
+            step_state_machine();
+            Delay_ms(100);
+        }
     }
 
     while(1) {
-        Delay_ms(1000);
+        step_state_machine();
+        Delay_ms(100);
     }
 }

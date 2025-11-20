@@ -4,15 +4,18 @@
 
 void guiLenhAT(char *cmd)
 {
-    // Reset buffer
+	Delay_ms(2000);
     uart1_index = 0;
     memset((void*)uart1_dem, 0, MAX_SIZE);
+
 
     // Gửi lệnh AT
     UART_testchuoi(USART1, cmd);
     UART_testchuoi(USART1, "\r\n");
 
     // Echo ra DEBUG
+
+    Delay_ms(2000);
     UART_testchuoi(DEBUG, "Gui: ");
     UART_testchuoi(DEBUG, cmd);
     UART_testchuoi(DEBUG, "\r\n");
@@ -23,6 +26,8 @@ void guiLenhAT(char *cmd)
     // In phản hồi
     if (uart1_index > 0)
     {
+
+    	UART_testchuoi(DEBUG, "da vao day: ");
         UART_testchuoi(DEBUG, "Nhan: ");
         for (uint16_t i = 0; i < uart1_index; i++)
             custom_SendByte(DEBUG, uart1_dem[i]);
@@ -107,4 +112,6 @@ void test_tinnhan(char *number, char *message)
 
     UART_testchuoi(DEBUG, "--- KET THUC GUI SMS ---\r\n");
 }
+
+
 

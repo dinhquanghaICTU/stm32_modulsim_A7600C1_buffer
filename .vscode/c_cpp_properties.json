@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "STM32",
+            "compilerPath": "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2021.10/bin/arm-none-eabi-gcc.exe",
+            "intelliSenseMode": "gcc-arm",
+            "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/Libraries/CMSIS",
+                "${workspaceFolder}/Libraries/Device",
+                "${workspaceFolder}/Libraries/STM32F4xx_StdPeriph_Driver/inc"
+            ],
+            "defines": [
+                "STM32F40_41xxx",
+                "USE_STDPERIPH_DRIVER"
+            ],
+            "cStandard": "gnu11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

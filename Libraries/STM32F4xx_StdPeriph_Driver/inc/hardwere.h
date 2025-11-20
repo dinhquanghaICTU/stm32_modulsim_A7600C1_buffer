@@ -34,11 +34,40 @@
 // UART Debug
 #define DEBUG USART2
 
-// Global buffers - khai báo extern SAU KHI đã define MAX_SIZE
-extern volatile uint8_t uart1_dem[MAX_SIZE];
-extern volatile uint16_t uart1_index;
-extern volatile uint8_t uart2_dem[MAX_SIZE];
-extern volatile uint16_t uart2_index;
+
+volatile uint8_t uart1_dem[MAX_SIZE];
+volatile uint16_t uart1_index;
+volatile uint8_t uart2_dem[MAX_SIZE];
+volatile uint16_t uart2_index;
+
+//state machine
+
+typedef  enum{
+	SIM_IDLE = 0,
+	SIM_POWWER_ON,
+	SIM_WAIT_BOOT,
+	SIM_CHECK_AT,
+	SIM_SET_FULL_FUNC,
+	SIM_SET_CHARSET,
+	SIM_SET_SMS_MODE,
+	SIM_CHECK_NETWORK,
+	SIM_REGISTER_NETWORK,
+	SIM_CHECK_SIGNAL,
+	SIM_READY,
+	SIM_SEND_SMS,
+	SIM_WAIT_SMS_RESPONSE,
+	SIM_ERROR
+}state_machine_t;
+
+typedef struct{
+	state_machine_t	state;
+	state_machine_t	next_State;
+	uint32_t	timestamp;
+	uint16_t	timeout;
+	uint8_t		retrycount;
+	uint8_t		max_retry;
+}sim_config_t; // config_sim
+
 
 // Function prototypes
 void SystemClock_Config_rieng(void);
@@ -60,5 +89,6 @@ void UART_testchuoi(USART_TypeDef* USARTx, char *msg);
 void custom_SendByte(USART_TypeDef* USARTx, uint8_t data);
 void guiLenhAT(char *cmd);
 void test_tinnhan(char *number, char *message);
+void state_machine(void);
 
 #endif /* __HARDWARE_H__ */

@@ -1,4 +1,4 @@
-// ========== interrupt.c ==========
+
 #include "hardwere.h"
 
 void USART1_IRQHandler(void)
