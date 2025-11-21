@@ -283,6 +283,7 @@ uint8_t Sim_checkResponse(char * key, uint16_t time_out){
 	return 0;
 }
 
+/*
 void step_state_machine(){
     static uint8_t check_at_done = 0;
     static uint8_t set_func_done = 0;
@@ -433,3 +434,4 @@ void step_state_machine(){
 
 
 
+*/

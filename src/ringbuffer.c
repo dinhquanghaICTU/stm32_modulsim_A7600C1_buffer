@@ -1,5 +1,6 @@
 #include    "ringBuffer.h"
 #include    <string.h>
+
 void ringBuff_init(RINGBUFFER_t *ringbuff, void *buf, uint16_t size, uint16_t elem_size){
     ringbuff->buffer= (uint8_t  *) buf;
     ringbuff->size= size;
@@ -7,9 +8,6 @@ void ringBuff_init(RINGBUFFER_t *ringbuff, void *buf, uint16_t size, uint16_t el
     ringbuff->head= 0;
     ringbuff->tail= 0;
 }
-
-
-
 
 uint32_t ringbuff_write(RINGBUFFER_t *ringbuff, uint32_t len, void* data){
     uint32_t i= 0;

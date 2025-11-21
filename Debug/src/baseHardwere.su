@@ -17,4 +17,3 @@ baseHardwere.c:249:10:Gettick	4	static
 baseHardwere.c:253:6:sim_state_machine_init	4	static
 baseHardwere.c:263:6:set_state	16	static
 baseHardwere.c:274:9:Sim_checkResponse	24	static
-baseHardwere.c:286:6:step_state_machine	16	static

@@ -39,41 +39,34 @@ void guiLenhAT(char *cmd)
 }
 
 
-
-
-
-
-void test_tinnhan(char *number, char *message)
+void gui_tinnhan(char *number, char *message)
 {
     char cmd[100];
 
-    UART_testchuoi(DEBUG, "--- BAT DAU GUI SMS ---\r\n");
-
-    // Kiểm tra mạng TRƯỚC KHI gửi SMS
+    UART_testchuoi(&BUFFER_DEBUG, "[SMS] Kiem tra trang thai mang...\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);
     guiLenhAT("AT+CREG?");
     Delay_ms(1000);
-
-    // Chế độ text
+    
+    UART_testchuoi(&BUFFER_DEBUG, "[SMS] Chuyen che do text...\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);
     guiLenhAT("AT+CMGF=1");
-    Delay_ms(1000); // Tăng từ 500ms
+    Delay_ms(1000); 
 
-    // Reset buffer
+
+    UART_testchuoi(&BUFFER_DEBUG, "[SMS] Bat dau gui tin nhan...\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);
+
+ 
     uart1_index = 0;
     memset((void*)uart1_dem, 0, MAX_SIZE);
 
-    // Gửi lệnh AT+CMGS
     snprintf(cmd, sizeof(cmd), "AT+CMGS=\"%s\"", number);
-    UART_testchuoi(USART1, cmd);
-    UART_testchuoi(USART1, "\r\n");
+    guiLenhAT(cmd);  
 
-    UART_testchuoi(DEBUG, "Gui lenh: ");
-    UART_testchuoi(DEBUG, cmd);
-    UART_testchuoi(DEBUG, "\r\n");
 
-    // Đợi prompt '>' (tăng timeout)
-    Delay_ms(3000); // Tăng từ 2000ms
+    Delay_ms(3000); 
 
-    // Kiểm tra có nhận được '>' không
     uint8_t found_prompt = 0;
     for(uint16_t i = 0; i < uart1_index; i++) {
         if(uart1_dem[i] == '>') {
@@ -82,40 +75,58 @@ void test_tinnhan(char *number, char *message)
         }
     }
 
-    if(!found_prompt) {
-        UART_testchuoi(DEBUG, "Loi: Khong nhan duoc prompt '>'\r\n");
-        return;
-    }
+    // if(found_prompt=0) {
+    //     UART_testchuoi(&BUFFER_DEBUG, "[ERROR] Khong nhan duoc prompt '>'\r\n");
+    //     handler_TX(DEBUG, &BUFFER_DEBUG);
+        
+    //     UART_testchuoi(&BUFFER_DEBUG, "Received: ");
+    //     handler_TX(DEBUG, &BUFFER_DEBUG);
+    //     for(uint16_t i = 0; i < uart1_index; i++) {
+    //         custom_SendByte(DEBUG, uart1_dem[i]);
+    //     }
+    //     UART_testchuoi(&BUFFER_DEBUG, "\r\n");
+    //     handler_TX(DEBUG, &BUFFER_DEBUG);
+    //     return;
+    // }
 
-    UART_testchuoi(DEBUG, "Da nhan prompt '>'\r\n");
+    UART_testchuoi(&BUFFER_DEBUG, "[SMS] Da nhan prompt '>'\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);
 
-    // Reset buffer
     uart1_index = 0;
+    memset((void*)uart1_dem, 0, MAX_SIZE);
 
-    // Gửi nội dung tin nhắn
-    UART_testchuoi(USART1, message);
-    UART_testchuoi(USART1, "\x1A"); // Ctrl+Z
+    UART_testchuoi(&BUFFER_AT, message);
+    handler_TX(AT, &BUFFER_AT);
+    
 
-    UART_testchuoi(DEBUG, "Dang gui tin nhan...\r\n");
+    custom_SendByte(AT, 0x1A);
 
-    // Đợi kết quả (tăng lên 30s vì Viettel có thể chậm)
-    Delay_ms(30000); // Tăng từ 15000ms
+    UART_testchuoi(&BUFFER_DEBUG, "[SMS] Dang gui...\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);
 
-    // In kết quả
-    if (uart1_index > 0)
-    {
-        UART_testchuoi(DEBUG, "Ket qua: ");
-        for (uint16_t i = 0; i < uart1_index; i++)
+    Delay_ms(30000); 
+
+    if (uart1_index > 0) {
+        UART_testchuoi(&BUFFER_DEBUG, "[SMS] Ket qua: ");
+        handler_TX(DEBUG, &BUFFER_DEBUG);
+        
+        for (uint16_t i = 0; i < uart1_index; i++) {
             custom_SendByte(DEBUG, uart1_dem[i]);
-        UART_testchuoi(DEBUG, "\r\n");
-    }
-    else
-    {
-        UART_testchuoi(DEBUG, "Khong nhan duoc ket qua!\r\n");
-    }
+        }
+        
+        UART_testchuoi(&BUFFER_DEBUG, "\r\n");
+        handler_TX(DEBUG, &BUFFER_DEBUG);
 
-    UART_testchuoi(DEBUG, "--- KET THUC GUI SMS ---\r\n");
+        if (strstr((char*)uart1_dem, "+CMGS:") != NULL || 
+            strstr((char*)uart1_dem, "OK") != NULL) {
+            UART_testchuoi(&BUFFER_DEBUG, "[SMS] GUI THANH CONG!\r\n");
+            handler_TX(DEBUG, &BUFFER_DEBUG);
+        } else if (strstr((char*)uart1_dem, "ERROR") != NULL) {
+            UART_testchuoi(&BUFFER_DEBUG, "[SMS] GUI THAT BAI!\r\n");
+            handler_TX(DEBUG, &BUFFER_DEBUG);
+        }
+    } else {
+        UART_testchuoi(&BUFFER_DEBUG, "[ERROR] Khong nhan duoc ket qua!\r\n");
+        handler_TX(DEBUG, &BUFFER_DEBUG);
+    }
 }
-
-
-

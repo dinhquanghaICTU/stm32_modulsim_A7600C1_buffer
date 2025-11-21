@@ -96,8 +96,8 @@ void led_SendUartDone(void);
 void UART_testchuoi(RINGBUFFER_t *buffer, char *msg);
 void custom_SendByte(USART_TypeDef* USARTx, uint8_t data);
 void guiLenhAT(char *cmd);
-void test_tinnhan(char *number, char *message);
-void state_machine(void);
+void gui_tinnhan(char *number, char *message);
+//void state_machine(void);
 void handler_TX(USART_TypeDef* USARTx, RINGBUFFER_t *buffer);
 
 
