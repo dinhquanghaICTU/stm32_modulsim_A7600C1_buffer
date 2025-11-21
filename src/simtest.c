@@ -2,15 +2,18 @@
 #include "hardwere.h"
 #include <string.h>
 
+// void custom
+
+
 void guiLenhAT(char *cmd)
 {
-	Delay_ms(2000);
+	/*Delay_ms(2000);
     uart1_index = 0;
     memset((void*)uart1_dem, 0, MAX_SIZE);
 
 
     // Gửi lệnh AT
-    UART_testchuoi(USART1, cmd);
+     UART_testchuoi(USART1, cmd);
     UART_testchuoi(USART1, "\r\n");
 
     // Echo ra DEBUG
@@ -37,6 +40,14 @@ void guiLenhAT(char *cmd)
     {
         UART_testchuoi(DEBUG, "Khong nhan duoc phan hoi!\r\n");
     }
+        */
+
+
+//        uart1_index = 0;
+//        memset((void*)uart1_dem, 0, MAX_SIZE); // xoa dem
+//        UART_testchuoi(DEBUG,DEBUG ,"tesst"))
+
+
 }
 
 void test_tinnhan(char *number, char *message)

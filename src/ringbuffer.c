@@ -9,6 +9,8 @@ void ringBuff_init(RINGBUFFER_t *ringbuff, void *buf, uint16_t size, uint16_t el
 }
 
 
+//truyen 1 buffer nao  1- do dai , 2 data
+
 uint32_t ringbuff_write(RINGBUFFER_t *ringbuff, uint32_t len, void* data){
     uint32_t i= 0;
     while (i < len)
@@ -26,12 +28,13 @@ uint32_t ringbuff_write(RINGBUFFER_t *ringbuff, uint32_t len, void* data){
     return i;
 }
 
-uint8_t ringbuff_pop(RINGBUFFER_t *ringBuff, void *out){
-    if(ringBuff->head == ringBuff->tail){
-        return 0;
-    }
+uint8_t ringbuff_pop(RINGBUFFER_t *ringBuff, void *out)
+{
+    if(ringBuff->head == ringBuff->tail)
+        return 0; // empty
 
-    memcpy(out,ringBuff->buffer + ringBuff->tail * ringBuff->elem_size, ringBuff->elem_size);
-    ringBuff->tail=(ringBuff->tail+1) % ringBuff->size;
+    *(uint8_t*)out = ringBuff->buffer[ringBuff->tail];
+
+    ringBuff->tail = (ringBuff->tail + 1) % ringBuff->size;
     return 1;
 }

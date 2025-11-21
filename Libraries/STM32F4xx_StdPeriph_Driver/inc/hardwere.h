@@ -7,9 +7,16 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_usart.h"
+#include "ringbuffer.h"
 
-// Buffer size - PHẢI ĐỊNH NGHĨA TRƯỚC
+
 #define MAX_SIZE 300
+
+RINGBUFFER_t BUFFER_AT;
+uint8_t AT_Data[256];
+
+RINGBUFFER_t BUFFER_DEBUG;
+uint8_t DEBUG_Data[256];
 
 // SIM
 #define SIM_STATUS_Pin GPIO_Pin_12
@@ -85,10 +92,11 @@ void USART1_Sim_A7600C1_Config(void);
 void led_debug_on(void);
 void led_debug_off(void);
 void led_SendUartDone(void);
-void UART_testchuoi(USART_TypeDef* USARTx, char *msg);
+void UART_testchuoi(RINGBUFFER_t *buffer, char *msg);
 void custom_SendByte(USART_TypeDef* USARTx, uint8_t data);
 void guiLenhAT(char *cmd);
 void test_tinnhan(char *number, char *message);
 void state_machine(void);
+void handler_TX(USART_TypeDef* USARTx, RINGBUFFER_t *buffer);
 
 #endif /* __HARDWARE_H__ */

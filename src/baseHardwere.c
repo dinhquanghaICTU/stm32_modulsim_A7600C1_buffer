@@ -1,6 +1,7 @@
 #include "hardwere.h"
 #include <stdint.h>
 #include <string.h>
+#include<ringBuffer.h>
 
 static uint32_t micros = 0;
 static uint32_t milis = 0;
@@ -240,20 +241,21 @@ void USART1_Sim_A7600C1_Config(void)
     USART_Cmd(USART1, ENABLE);
 }
 
-void UART_testchuoi(USART_TypeDef* USARTx,char *msg)
+void UART_testchuoi(RINGBUFFER_t *buffer , char *msg)
 {
 
     for(int i = 0; msg[i] != '\0'; i++)
     {
-    	USART_SendData(USARTx, msg[i]);
-        while(USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
+    	ringbuff_write(buffer,1, (uint8_t *)&msg[i]);
     }
 }
 
-void custom_SendByte(USART_TypeDef* USARTx, uint8_t  data){
-	while(USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
-	USART_SendData(USARTx, data);
+void custom_SendByte(USART_TypeDef* USARTx, uint8_t data)
+{
+    USART_SendData(USARTx, data);
+    while(USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
 }
+
 
 
 
@@ -282,7 +284,7 @@ void set_state (state_machine_t	newState,uint16_t	time_out){
 	uart1_index= 0;
 }
 
-// KIEM TRA CHUOI TRA VE CO DUNG KHONG
+
 
 uint8_t Sim_checkResponse(char * key, uint16_t time_out){
 	uint16_t start_Time = Gettick() ;
