@@ -9,7 +9,7 @@ void ringBuff_init(RINGBUFFER_t *ringbuff, void *buf, uint16_t size, uint16_t el
 }
 
 
-//truyen 1 buffer nao  1- do dai , 2 data
+
 
 uint32_t ringbuff_write(RINGBUFFER_t *ringbuff, uint32_t len, void* data){
     uint32_t i= 0;

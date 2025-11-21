@@ -40,6 +40,7 @@ uint8_t DEBUG_Data[256];
 
 // UART Debug
 #define DEBUG USART2
+#define AT	USART1
 
 
 volatile uint8_t uart1_dem[MAX_SIZE];
@@ -98,5 +99,7 @@ void guiLenhAT(char *cmd);
 void test_tinnhan(char *number, char *message);
 void state_machine(void);
 void handler_TX(USART_TypeDef* USARTx, RINGBUFFER_t *buffer);
+
+
 
 #endif /* __HARDWARE_H__ */

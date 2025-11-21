@@ -1,2 +1,5 @@
 uart.c:4:6:USART1_IRQHandler	16	static
-uart.c:21:6:USART2_IRQHandler	16	static
+uart.c:18:6:USART2_IRQHandler	16	static
+uart.c:38:6:handler_TX	24	static
+uart.c:47:6:UART_testchuoi	24	static
+uart.c:56:6:custom_SendByte	16	static

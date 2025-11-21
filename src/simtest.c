@@ -7,48 +7,41 @@
 
 void guiLenhAT(char *cmd)
 {
-	/*Delay_ms(2000);
     uart1_index = 0;
-    memset((void*)uart1_dem, 0, MAX_SIZE);
+    memset((void*)uart1_dem, 0, MAX_SIZE); 
 
 
-    // Gửi lệnh AT
-     UART_testchuoi(USART1, cmd);
-    UART_testchuoi(USART1, "\r\n");
+    UART_testchuoi(&BUFFER_AT, cmd);
+    UART_testchuoi(&BUFFER_AT, "\r\n");
+    handler_TX(AT, &BUFFER_AT);
 
-    // Echo ra DEBUG
 
-    Delay_ms(2000);
-    UART_testchuoi(DEBUG, "Gui: ");
-    UART_testchuoi(DEBUG, cmd);
-    UART_testchuoi(DEBUG, "\r\n");
+    UART_testchuoi(&BUFFER_DEBUG, "Gui: ");
+    UART_testchuoi(&BUFFER_DEBUG, cmd);
+    UART_testchuoi(&BUFFER_DEBUG, "\r\n");
+    handler_TX(DEBUG, &BUFFER_DEBUG);  
 
-    // Đợi phản hồi
-    Delay_ms(2000);
 
-    // In phản hồi
-    if (uart1_index > 0)
-    {
+    Delay_ms(3000);
 
-    	UART_testchuoi(DEBUG, "da vao day: ");
-        UART_testchuoi(DEBUG, "Nhan: ");
-        for (uint16_t i = 0; i < uart1_index; i++)
+
+    if (uart1_index > 0) {
+        UART_testchuoi(&BUFFER_DEBUG, "Nhan: ");
+        handler_TX(DEBUG, &BUFFER_DEBUG);
+
+        for (uint16_t i = 0; i < uart1_index; i++) {
             custom_SendByte(DEBUG, uart1_dem[i]);
-        UART_testchuoi(DEBUG, "\r\n");
+        }
+        
+        UART_testchuoi(&BUFFER_DEBUG, "\r\n");
+        handler_TX(DEBUG, &BUFFER_DEBUG);
     }
-    else
-    {
-        UART_testchuoi(DEBUG, "Khong nhan duoc phan hoi!\r\n");
-    }
-        */
-
-
-//        uart1_index = 0;
-//        memset((void*)uart1_dem, 0, MAX_SIZE); // xoa dem
-//        UART_testchuoi(DEBUG,DEBUG ,"tesst"))
-
-
 }
+
+
+
+
+
 
 void test_tinnhan(char *number, char *message)
 {

@@ -1,2 +1,2 @@
-simtest.c:8:6:guiLenhAT	16	static
-simtest.c:53:6:test_tinnhan	128	static
+simtest.c:8:6:guiLenhAT	24	static
+simtest.c:46:6:test_tinnhan	128	static

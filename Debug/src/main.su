@@ -1,2 +1,1 @@
-main.c:10:6:process_tx_buffer	24	static
-main.c:18:5:main	8	static
+main.c:8:5:main	8	static

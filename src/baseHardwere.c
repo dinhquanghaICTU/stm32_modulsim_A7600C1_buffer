@@ -142,6 +142,10 @@ void NVIC_config(){
     Nvic_config.NVIC_IRQChannelSubPriority = 1;
     Nvic_config.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&Nvic_config);
+
+
+
+    USART_ITConfig(AT, USART_IT_RXNE, ENABLE);
 }
 
 
@@ -241,32 +245,13 @@ void USART1_Sim_A7600C1_Config(void)
     USART_Cmd(USART1, ENABLE);
 }
 
-void UART_testchuoi(RINGBUFFER_t *buffer , char *msg)
-{
-
-    for(int i = 0; msg[i] != '\0'; i++)
-    {
-    	ringbuff_write(buffer,1, (uint8_t *)&msg[i]);
-    }
-}
-
-void custom_SendByte(USART_TypeDef* USARTx, uint8_t data)
-{
-    USART_SendData(USARTx, data);
-    while(USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
-}
-
-
-
-
-
 
 uint32_t Gettick(){
 	return systick;
 }
 
 void sim_state_machine_init(){
-	config_sim.max_retry = 3; // thu lai  3 lan
+	config_sim.max_retry = 3; 
 	config_sim.next_State = SIM_IDLE;
 	config_sim.retrycount =0;
 	config_sim.state= SIM_IDLE ;
@@ -274,7 +259,7 @@ void sim_state_machine_init(){
 	config_sim.timestamp = 0;
 }
 
-// truyen state and timeout
+
 void set_state (state_machine_t	newState,uint16_t	time_out){
 	config_sim.state= newState;
 	config_sim.timestamp= Gettick();
