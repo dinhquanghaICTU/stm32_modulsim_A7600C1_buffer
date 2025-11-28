@@ -3,6 +3,8 @@
 #include "drivers/hardware.h"
 #include "utils/ringbuff.h"
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 static ringbuff_t rb_debug;
 static ringbuff_t rb_sim;
@@ -82,3 +84,23 @@ bool uart_channel_read_line(uart_channel_t ch, char *out, uint16_t max_len)
 
     return false;
 }
+
+
+void uart_channel_send_format(uart_channel_t ch, const char *fmt, ...)
+{
+    char buffer[256];
+    va_list args;
+
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    uart_channel_send_str(ch, buffer);
+}
+
+
+void uart_channel_send_byte(uart_channel_t ch, uint8_t b)
+{
+    uart_channel_send(ch, &b, 1);
+}
+

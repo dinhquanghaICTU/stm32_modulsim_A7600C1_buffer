@@ -25,11 +25,37 @@ static void sim_set_state(sim_state_t st)
     switch (st)
     {
     case SIM_STATE_WAIT_CPIN:
+    
         uart_channel_send_str(UART_CH_SIM, "AT+CPIN?\r\n");
         break;
 
     case SIM_STATE_WAIT_CREG:
+      
         uart_channel_send_str(UART_CH_SIM, "AT+CREG?\r\n");
+        break;
+    
+    case SIM_STATE_CONFIG_SMS_CMGF:
+        uart_channel_send_str(UART_CH_SIM, "AT+CMGF=1\r\n");
+        sim_state = SIM_STATE_WAIT_CMGF;  
+        state_timestamp = HW_GetTickMs();
+        break;
+    
+    case SIM_STATE_CONFIG_SMS_CSCS:
+        uart_channel_send_str(UART_CH_SIM,"AT+CSCS=\"GSM\"\r\n");
+        sim_state = SIM_STATE_WAIT_CSCS;  
+        state_timestamp = HW_GetTickMs();
+        break;
+
+    case SIM_STATE_CONFIG_SMS_CPMS:
+        uart_channel_send_str(UART_CH_SIM,"AT+CPMS=\"ME\",\"ME\",\"ME\"\r\n" );
+        sim_state = SIM_STATE_WAIT_CPMS;  
+        state_timestamp = HW_GetTickMs();
+        break;
+
+    case SIM_STATE_CONFIG_SMS_SMEE:
+        uart_channel_send_str(UART_CH_SIM, "AT+CMEE=1\r\n");
+        sim_state = SIM_STATE_WAIT_SMEE;  
+        state_timestamp = HW_GetTickMs();
         break;
 
     default:
@@ -71,8 +97,6 @@ void sim_fsm_tick(event_queue_t *q)
             if (evt.type == AT_EVENT_PBREADY)
                 sim_set_state(SIM_STATE_WAIT_CPIN);
         }
-
-
         if (HW_IsTimeout(&state_timestamp, 3000)) {
             sim_set_state(SIM_STATE_WAIT_CPIN);
         }
@@ -93,7 +117,7 @@ void sim_fsm_tick(event_queue_t *q)
     case SIM_STATE_WAIT_CREG:
         if (event_queue_pop(q, &evt)) {
             if (evt.type == AT_EVENT_CREG && evt.value2 == 1) {
-                sim_set_state(SIM_STATE_READY);
+                sim_set_state(SIM_STATE_CONFIG_SMS_CMGF);
             }
         }
         else if (HW_IsTimeout(&state_timestamp, 2000)) {
@@ -101,6 +125,52 @@ void sim_fsm_tick(event_queue_t *q)
         }
         break;
 
+    case SIM_STATE_WAIT_CMGF:
+        if(event_queue_pop(q, &evt)){
+            if(evt.type == AT_EVENT_OK){
+                sim_set_state(SIM_STATE_CONFIG_SMS_CSCS);
+            }
+        }
+        else if (HW_IsTimeout(&state_timestamp, 2000)) {
+            uart_channel_send_str(UART_CH_SIM, "AT+CMGF=1\r\n");
+        }
+        break;
+    
+    case SIM_STATE_WAIT_CSCS:
+        if(event_queue_pop(q, &evt)){
+            if(evt.type == AT_EVENT_OK){
+                sim_set_state(SIM_STATE_CONFIG_SMS_CPMS);
+            }
+        }
+         else if (HW_IsTimeout(&state_timestamp,2000))
+        {
+            uart_channel_send_str(UART_CH_SIM,"AT+CSCS=\"GSM\"\r\n");
+        }
+        break;
+    case SIM_STATE_WAIT_CPMS:
+        if(event_queue_pop(q, &evt)){
+            if(evt.type == AT_EVENT_OK){
+                sim_set_state(SIM_STATE_CONFIG_SMS_SMEE);
+            }           
+        }
+        else if (HW_IsTimeout(&state_timestamp, 2000))
+        {
+            uart_channel_send_str(UART_CH_SIM,"AT+CPMS=\"ME\",\"ME\",\"ME\"\r\n");
+        } 
+        
+        break;
+
+    case SIM_STATE_WAIT_SMEE:
+        if(event_queue_pop(q, &evt)){
+            if(evt.type == AT_EVENT_OK){
+                sim_set_state(SIM_STATE_READY);
+            }           
+        }
+        else if (HW_IsTimeout(&state_timestamp,2000))
+        {
+            uart_channel_send_str(UART_CH_SIM,"AT+CMEE=1\r\n");
+        } 
+        break;
     case SIM_STATE_READY:
 
         break;

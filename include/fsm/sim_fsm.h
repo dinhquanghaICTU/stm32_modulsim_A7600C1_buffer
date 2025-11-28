@@ -11,12 +11,21 @@ typedef enum {
     SIM_STATE_WAIT_RDY,
     SIM_STATE_WAIT_CPIN,
     SIM_STATE_WAIT_CREG,
+    // config network for can't  low send sms 
+    SIM_STATE_CONFIG_SMS_CMGF,
+    SIM_STATE_WAIT_CMGF,
+    SIM_STATE_CONFIG_SMS_CSCS,
+    SIM_STATE_WAIT_CSCS,
+    SIM_STATE_CONFIG_SMS_CPMS,
+    SIM_STATE_WAIT_CPMS,
+    SIM_STATE_CONFIG_SMS_SMEE,
+    SIM_STATE_WAIT_SMEE,
     SIM_STATE_READY
 } sim_state_t;
 
 void sim_fsm_init(void);
 void sim_fsm_tick(event_queue_t *q);
-
+static void sim_set_state(sim_state_t st);
 sim_state_t sim_fsm_get_state(void);
 
 #endif

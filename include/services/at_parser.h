@@ -13,7 +13,14 @@ typedef enum {
     AT_EVENT_CREG,
     AT_EVENT_CSQ,
     AT_EVENT_SMS_READY,
+    AT_EVENT_PROMPT,
+    AT_EVENT_CMGS,
+    AT_EVENT_CMTI,
+    AT_EVENT_CMGR_HEADER,
+    AT_EVENT_CMGR_TEXT,
+    AT_EVENT_CMS_ERROR,
 	AT_EVENT_PBREADY,
+    
     AT_EVENT_URC,     // unparsed URC
 } at_event_type_t;
 

@@ -61,7 +61,6 @@ bool at_parse_line(const char *line, at_event_t *evt)
         return true;
     }
 
-
     if (strcmp(line, "SMS READY") == 0) {
         evt->type = AT_EVENT_SMS_READY;
         return true;
@@ -69,6 +68,15 @@ bool at_parse_line(const char *line, at_event_t *evt)
 
     if (strcmp(line, "PB DONE") == 0) {
         evt->type = AT_EVENT_PBREADY;
+        return true;
+    }
+
+    if (strncmp(line, "+CMS ERROR:", 11) == 0) {
+        evt->type = AT_EVENT_CMS_ERROR;
+        const char *p = line + 11;
+        while (*p == ' ' || *p == '\t')
+            ++p;
+        evt->value1 = atoi(p);
         return true;
     }
 
