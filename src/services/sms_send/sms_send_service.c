@@ -17,8 +17,11 @@ bool sms_send(const char *number, const char *message)
     if (sms_send_fsm_get_state() != SMS_SEND_IDLE)
         return false;   
 
-    strncpy(sms_send_ctx.number, number, sizeof(sms_send_ctx.number)-1);
-    strncpy(sms_send_ctx.message, message, sizeof(sms_send_ctx.message)-1);
+    strncpy(sms_send_ctx.number, number, sizeof(sms_send_ctx.number) - 1);
+    sms_send_ctx.number[sizeof(sms_send_ctx.number) - 1] = '\0';
+
+    strncpy(sms_send_ctx.message, message, sizeof(sms_send_ctx.message) - 1);
+    sms_send_ctx.message[sizeof(sms_send_ctx.message) - 1] = '\0';
 
     sms_send_set_state(SMS_SEND_REQ);
     return true;

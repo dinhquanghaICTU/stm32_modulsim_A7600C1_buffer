@@ -71,6 +71,11 @@ bool at_parse_line(const char *line, at_event_t *evt)
         return true;
     }
 
+    if (strcmp(line, "DOWNLOAD") == 0) {
+        evt->type = AT_EVENT_DOWNLOAD;
+        return true;
+    }
+
     if (strncmp(line, "+CMS ERROR:", 11) == 0) {
         evt->type = AT_EVENT_CMS_ERROR;
         const char *p = line + 11;
