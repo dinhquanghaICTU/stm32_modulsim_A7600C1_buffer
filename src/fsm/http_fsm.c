@@ -59,16 +59,16 @@ void http_set_state(http_state_t st)
         uart_channel_send_str(UART_CH_SIM, "AT+HTTPPARA=\"CID\",1\r\n");
         break;
 
+    case HTTP_SET_UA:
+        uart_channel_send_format(UART_CH_SIM,"AT+HTTPPARA=\"UA\",\"%s\"\r\n",http_ctx.user_agent);
+        break;
+
     case HTTP_SET_URL:
-        uart_channel_send_format(UART_CH_SIM,
-                                 "AT+HTTPPARA=\"URL\",\"%s\"\r\n",
-                                 http_ctx.url);
+        uart_channel_send_format(UART_CH_SIM,"AT+HTTPPARA=\"URL\",\"%s\"\r\n",http_ctx.url);
         break;
 
     case HTTP_SET_DATA:
-        uart_channel_send_format(UART_CH_SIM,
-                                 "AT+HTTPDATA=%d,2000\r\n",
-                                 http_ctx.payload_len);
+        uart_channel_send_format(UART_CH_SIM,"AT+HTTPDATA=%d,2000\r\n",http_ctx.payload_len);
         break;
 
     case HTTP_WAIT_DATA:
@@ -81,9 +81,9 @@ void http_set_state(http_state_t st)
 
     case HTTP_ACTION:
         if (http_ctx.is_post)
-            uart_channel_send_str(UART_CH_SIM, "AT+HTTPACTION=1\r\n"); // POST
+            uart_channel_send_str(UART_CH_SIM, "AT+HTTPACTION=1\r\n"); 
         else
-            uart_channel_send_str(UART_CH_SIM, "AT+HTTPACTION=0\r\n"); // GET
+            uart_channel_send_str(UART_CH_SIM, "AT+HTTPACTION=0\r\n"); 
         http_state = HTTP_WAIT_ACTION;
         state_timestamp = HW_GetTickMs();
         break;
@@ -94,9 +94,7 @@ void http_set_state(http_state_t st)
     case HTTP_READ:
         if (http_ctx.resp_len > 0)
         {
-            uart_channel_send_format(UART_CH_SIM,
-                                     "AT+HTTPREAD=0,%u\r\n",
-                                     http_ctx.resp_len);
+            uart_channel_send_format(UART_CH_SIM,"AT+HTTPREAD=0,%u\r\n",http_ctx.resp_len);
         }
         else
         {
@@ -144,7 +142,7 @@ void http_fsm_tick(event_queue_t *q)
     case HTTP_TERM_FIRST:
         if (event_queue_pop(q, &evt))
         {
-            // OK hoặc ERROR đều OK (có thể HTTP chưa được init từ trước)
+            
             if (evt.type == AT_EVENT_OK || evt.type == AT_EVENT_ERROR)
             {
                 http_set_state(HTTP_INIT);
@@ -152,7 +150,7 @@ void http_fsm_tick(event_queue_t *q)
         }
         else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
         {
-            // Timeout cũng OK, tiếp tục init
+            
             http_set_state(HTTP_INIT);
         }
         break;
@@ -176,7 +174,7 @@ void http_fsm_tick(event_queue_t *q)
         break;
 
     case HTTP_WAIT_INIT:
-        // Đợi 500ms sau HTTPINIT để module sẵn sàng
+        
         if (HW_IsTimeout(&state_timestamp, 500))
         {
             http_set_state(HTTP_SET_CID);
@@ -188,18 +186,37 @@ void http_fsm_tick(event_queue_t *q)
         {
             if (evt.type == AT_EVENT_OK)
             {
+                http_set_state(HTTP_SET_UA);
+            }
+            else if (evt.type == AT_EVENT_ERROR)
+            {
+               
+                http_set_state(HTTP_SET_UA);
+            }
+        }
+        else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
+        {
+            
+            http_set_state(HTTP_SET_UA);
+        }
+        break;
+
+    case HTTP_SET_UA:
+        if (event_queue_pop(q, &evt))
+        {
+            if (evt.type == AT_EVENT_OK)
+            {
                 http_set_state(HTTP_SET_URL);
             }
             else if (evt.type == AT_EVENT_ERROR)
             {
-                // CID có thể không cần thiết nếu đã có default context
-                // Skip và đi thẳng đến SET_URL
+               
                 http_set_state(HTTP_SET_URL);
             }
         }
         else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
         {
-            // Timeout cũng skip CID
+            
             http_set_state(HTTP_SET_URL);
         }
         break;
@@ -318,7 +335,7 @@ void http_fsm_tick(event_queue_t *q)
                     {
                         memcpy(&http_ctx.response[http_ctx.resp_pos], evt.line, copy_len);
                         http_ctx.resp_pos += (uint16_t)copy_len;
-
+ 
                         if (http_ctx.resp_pos < sizeof(http_ctx.response) - 1)
                         {
                             http_ctx.response[http_ctx.resp_pos++] = '\n';
@@ -357,6 +374,7 @@ void http_fsm_tick(event_queue_t *q)
         }
         break;
 
+        
     case HTTP_DONE:
     case HTTP_ERROR:
         break;

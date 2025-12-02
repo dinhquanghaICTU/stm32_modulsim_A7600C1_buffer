@@ -21,6 +21,8 @@ typedef struct
     uint16_t payload_len;
     bool is_post;
 
+    char user_agent[128];  // User-Agent header
+
     uint16_t http_status;
     uint16_t resp_len;
     uint16_t resp_received;

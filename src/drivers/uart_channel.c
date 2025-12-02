@@ -18,7 +18,6 @@ void uart_channel_init(void)
     ringbuff_init(&rb_sim,   rb_sim_buf,   sizeof(rb_sim_buf));
 }
 
-// ISR gọi hàm này để nhét byte vào buffer
 void uart_channel_isr_rx(uart_channel_t ch, uint8_t byte)
 {
     if (ch == UART_CH_SIM)
@@ -27,7 +26,7 @@ void uart_channel_isr_rx(uart_channel_t ch, uint8_t byte)
         ringbuff_write(&rb_debug, &byte, 1);
 }
 
-// Gửi raw data
+
 void uart_channel_send(uart_channel_t ch, const uint8_t *data, uint16_t len)
 {
     if (ch == UART_CH_SIM)
@@ -36,13 +35,12 @@ void uart_channel_send(uart_channel_t ch, const uint8_t *data, uint16_t len)
         uart_hw_write(UART_DEBUG, data, len);
 }
 
-// Gửi string (chính là hàm mà main đang gọi)
 void uart_channel_send_str(uart_channel_t ch, const char *str)
 {
     uart_channel_send(ch, (const uint8_t*)str, (uint16_t)strlen(str));
 }
 
-// Đọc 1 byte từ ringbuffer (non-blocking)
+
 bool uart_channel_read_byte(uart_channel_t ch, uint8_t *out)
 {
     if (ch == UART_CH_SIM)
@@ -51,7 +49,7 @@ bool uart_channel_read_byte(uart_channel_t ch, uint8_t *out)
         return ringbuff_read(&rb_debug, out, 1) == 1;
 }
 
-// Đọc 1 dòng kết thúc bằng '\n'
+
 bool uart_channel_read_line(uart_channel_t ch, char *out, uint16_t max_len)
 {
     static char line_buf[256];
@@ -78,7 +76,7 @@ bool uart_channel_read_line(uart_channel_t ch, char *out, uint16_t max_len)
             if (line_len < sizeof(line_buf) - 1)
                 line_buf[line_len++] = c;
             else
-                line_len = 0;   // overflow thì reset
+                line_len = 0;   
         }
     }
 

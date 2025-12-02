@@ -20,12 +20,20 @@ typedef enum {
     AT_EVENT_CMGR_TEXT,
     AT_EVENT_CMS_ERROR,
     AT_EVENT_PBREADY,
+    //http event
     AT_EVENT_DOWNLOAD,
     AT_EVENT_HTTPACTION,
     AT_EVENT_HTTPREAD_HEADER,
     AT_EVENT_HTTPREAD_DATA,
+    // mqtt event
+    AT_EVENT_MQTTCONNECT,
+    AT_EVENT_MQTTCONNACK,
+    AT_EVENT_MQTTPUBLISH,
+    AT_EVENT_MQTTPUBACK,
+    AT_EVENT_MQTTSUBACK,
+    AT_EVENT_MQTTDISC,
     
-    AT_EVENT_URC,     // unparsed URC
+    AT_EVENT_URC,     
 } at_event_type_t;
 
 typedef struct {

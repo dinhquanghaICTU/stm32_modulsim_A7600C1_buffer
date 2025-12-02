@@ -14,6 +14,7 @@ typedef enum{
     HTTP_INIT,          // AT+HTTPINIT
     HTTP_WAIT_INIT,     // Đợi sau HTTPINIT để module sẵn sàng
     HTTP_SET_CID,       // AT+HTTPPARA="CID",1
+    HTTP_SET_UA,        // AT+HTTPPARA="UA","User-Agent string"
     HTTP_SET_URL,       // AT+HTTPPARA="URL","..."
 
     HTTP_SET_DATA,      // AT+HTTPDATA=...

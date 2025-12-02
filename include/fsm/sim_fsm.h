@@ -11,7 +11,16 @@ typedef enum {
     SIM_STATE_WAIT_RDY,
     SIM_STATE_WAIT_CPIN,
     SIM_STATE_WAIT_CREG,
-    // config network for can't  low send sms 
+    
+    // Network setup (PDP context)
+    SIM_STATE_CONFIG_NETWORK_ATTACH,    // AT+CGATT=1
+    SIM_STATE_WAIT_NETWORK_ATTACH,
+    SIM_STATE_CONFIG_PDP_CONTEXT,       // AT+CGDCONT=1,"IP","internet"
+    SIM_STATE_WAIT_PDP_CONTEXT,
+    SIM_STATE_ACTIVATE_PDP,              // AT+CGACT=1,1
+    SIM_STATE_WAIT_ACTIVATE_PDP,
+    
+    // SMS config
     SIM_STATE_CONFIG_SMS_CMGF,
     SIM_STATE_WAIT_CMGF,
     SIM_STATE_CONFIG_SMS_CSCS,

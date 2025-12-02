@@ -33,6 +33,25 @@ static void sim_set_state(sim_state_t st)
       
         uart_channel_send_str(UART_CH_SIM, "AT+CREG?\r\n");
         break;
+
+    case SIM_STATE_CONFIG_NETWORK_ATTACH:
+        uart_channel_send_str(UART_CH_SIM, "AT+CGATT=1\r\n");
+        sim_state = SIM_STATE_WAIT_NETWORK_ATTACH;
+        state_timestamp = HW_GetTickMs();
+        break;
+
+    case SIM_STATE_CONFIG_PDP_CONTEXT:
+        // APN cho SIM Viettel gói bình thường
+        uart_channel_send_str(UART_CH_SIM, "AT+CGDCONT=1,\"IP\",\"v-internet\"\r\n");
+        sim_state = SIM_STATE_WAIT_PDP_CONTEXT;
+        state_timestamp = HW_GetTickMs();
+        break;
+
+    case SIM_STATE_ACTIVATE_PDP:
+        uart_channel_send_str(UART_CH_SIM, "AT+CGACT=1,1\r\n");
+        sim_state = SIM_STATE_WAIT_ACTIVATE_PDP;
+        state_timestamp = HW_GetTickMs();
+        break;
     
     case SIM_STATE_CONFIG_SMS_CMGF:
         uart_channel_send_str(UART_CH_SIM, "AT+CMGF=1\r\n");
@@ -117,11 +136,46 @@ void sim_fsm_tick(event_queue_t *q)
     case SIM_STATE_WAIT_CREG:
         if (event_queue_pop(q, &evt)) {
             if (evt.type == AT_EVENT_CREG && evt.value2 == 1) {
-                sim_set_state(SIM_STATE_CONFIG_SMS_CMGF);
+                sim_set_state(SIM_STATE_CONFIG_NETWORK_ATTACH);
             }
         }
         else if (HW_IsTimeout(&state_timestamp, 2000)) {
             uart_channel_send_str(UART_CH_SIM, "AT+CREG?\r\n");
+        }
+        break;
+
+    case SIM_STATE_WAIT_NETWORK_ATTACH:
+        if (event_queue_pop(q, &evt)) {
+            if (evt.type == AT_EVENT_OK) {
+                sim_set_state(SIM_STATE_CONFIG_PDP_CONTEXT);
+            }
+        }
+        else if (HW_IsTimeout(&state_timestamp, 5000)) {
+            // Timeout - có thể đã attach rồi, tiếp tục
+            sim_set_state(SIM_STATE_CONFIG_PDP_CONTEXT);
+        }
+        break;
+
+    case SIM_STATE_WAIT_PDP_CONTEXT:
+        if (event_queue_pop(q, &evt)) {
+            if (evt.type == AT_EVENT_OK) {
+                sim_set_state(SIM_STATE_ACTIVATE_PDP);
+            }
+        }
+        else if (HW_IsTimeout(&state_timestamp, 2000)) {
+            uart_channel_send_str(UART_CH_SIM, "AT+CGDCONT=1,\"IP\",\"v-internet\"\r\n");
+        }
+        break;
+
+    case SIM_STATE_WAIT_ACTIVATE_PDP:
+        if (event_queue_pop(q, &evt)) {
+            if (evt.type == AT_EVENT_OK) {
+                sim_set_state(SIM_STATE_CONFIG_SMS_CMGF);
+            }
+        }
+        else if (HW_IsTimeout(&state_timestamp, 5000)) {
+            // Timeout - có thể đã activate rồi, tiếp tục
+            sim_set_state(SIM_STATE_CONFIG_SMS_CMGF);
         }
         break;
 
