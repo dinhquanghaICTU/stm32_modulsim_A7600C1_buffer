@@ -1,6 +1,7 @@
 #include "services/at_parser.h"
 #include <string.h>
 #include <stdlib.h>
+#include "services/uart_channel.h"
 
 bool at_parse_line(const char *line, at_event_t *evt)
 {
@@ -29,6 +30,7 @@ bool at_parse_line(const char *line, at_event_t *evt)
 
     if (strncmp(line, "+CPIN:", 6) == 0) {
         evt->type = AT_EVENT_CPIN;
+
         return true;
     }
 

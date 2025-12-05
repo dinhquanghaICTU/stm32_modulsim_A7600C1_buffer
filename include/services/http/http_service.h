@@ -21,7 +21,7 @@ typedef struct
     uint16_t payload_len;
     bool is_post;
 
-    char user_agent[128];  // User-Agent header
+    char user_agent[128];
 
     uint16_t http_status;
     uint16_t resp_len;
@@ -38,5 +38,7 @@ extern http_callback_t *http_cb;
 
 void http_service_init(http_callback_t *cb);
 bool http_get(const char *url);
+void http_set_user_agent(const char *user_agent);
 
 #endif //__HTTP_SERVICE_H__
+

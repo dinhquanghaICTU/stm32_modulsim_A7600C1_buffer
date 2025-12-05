@@ -83,6 +83,13 @@ bool uart_channel_read_line(uart_channel_t ch, char *out, uint16_t max_len)
     return false;
 }
 
+uint16_t uart_channel_read_bytes(uart_channel_t ch, uint8_t *out, uint16_t max_len)
+{
+    ringbuff_t *rb = (ch == UART_CH_SIM) ? &rb_sim : &rb_debug;
+    size_t read_len = ringbuff_read(rb, out, max_len);
+    return (uint16_t)read_len;
+}
+
 
 void uart_channel_send_format(uart_channel_t ch, const char *fmt, ...)
 {

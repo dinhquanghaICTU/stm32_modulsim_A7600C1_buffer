@@ -1,14 +1,11 @@
 #include "services/http/http_service.h"
-
 #include <string.h>
-
 #include "fsm/http_fsm.h"
 
 http_context_t http_ctx;
 http_callback_t *http_cb = NULL;
 
-static const char* default_user_agent = 
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+static const char* default_user_agent = "A7600C1_HTTP/1.0";
 
 void http_service_init(http_callback_t *cb)
 {
@@ -69,3 +66,4 @@ bool http_get(const char *url)
     http_set_state(HTTP_REQ_START);
     return true;
 }
+

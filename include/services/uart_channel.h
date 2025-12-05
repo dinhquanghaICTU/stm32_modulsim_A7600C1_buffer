@@ -20,5 +20,6 @@ void uart_channel_send_byte(uart_channel_t ch, uint8_t b);
 
 bool uart_channel_read_byte(uart_channel_t ch, uint8_t *out);
 bool uart_channel_read_line(uart_channel_t ch, char *out, uint16_t max_len);
+uint16_t uart_channel_read_bytes(uart_channel_t ch, uint8_t *out, uint16_t max_len);
 
 #endif //__UART_CHANNEL_H__

@@ -1,5 +1,4 @@
 #include "services/http/http_parser.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,10 +39,25 @@ bool http_parse_line(const char *line, at_event_t *evt)
     if (strncmp(line, "+HTTPREAD:", 10) == 0)
     {
         int length = atoi(line + 10);
+        
+        
+        if (length == 0 && httpread_body_pending)
+        {
+            
+            if (httpread_remaining == 0)
+            {
+                httpread_body_pending = false;
+                return false;  
+            }
+           
+            return false;
+        }
+        
         evt->type = AT_EVENT_HTTPREAD_HEADER;
         evt->value1 = length;
         httpread_body_pending = true;
         httpread_remaining = (length > 0) ? (uint16_t)length : 0;
+        
         return true;
     }
 
@@ -57,12 +71,23 @@ bool http_parse_line(const char *line, at_event_t *evt)
         }
 
         evt->type = AT_EVENT_HTTPREAD_DATA;
-        strncpy(evt->line, line, sizeof(evt->line) - 1);
-        evt->line[sizeof(evt->line) - 1] = '\0';
+        
+        
+        size_t copy_len = httpread_remaining;
+        if (copy_len > sizeof(evt->line) - 1)
+            copy_len = sizeof(evt->line) - 1;
+        
+        
+        if (copy_len == 0)
+            copy_len = strlen(line);
+        
+        
+        memcpy(evt->line, line, copy_len);
+        evt->line[copy_len] = '\0';  
+        evt->value1 = (int)copy_len;
 
-        size_t chunk_len = strlen(evt->line);
-        if (httpread_remaining > chunk_len)
-            httpread_remaining -= (uint16_t)chunk_len;
+        if (httpread_remaining > copy_len)
+            httpread_remaining -= (uint16_t)copy_len;
         else
             httpread_remaining = 0;
 
@@ -73,5 +98,26 @@ bool http_parse_line(const char *line, at_event_t *evt)
     }
 
     return false;
+}
+
+bool http_is_body_pending(void)
+{
+    return httpread_body_pending;
+}
+
+uint16_t http_get_body_remaining(void)
+{
+    return httpread_remaining;
+}
+
+void http_consume_body_bytes(uint16_t bytes)
+{
+    if (httpread_remaining > bytes)
+        httpread_remaining -= bytes;
+    else
+        httpread_remaining = 0;
+    
+    if (httpread_remaining == 0)
+        httpread_body_pending = false;
 }
 

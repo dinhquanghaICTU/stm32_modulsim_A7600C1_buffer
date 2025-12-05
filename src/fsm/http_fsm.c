@@ -1,7 +1,5 @@
-
 #include "fsm/http_fsm.h"
 #include <string.h>
-
 #include "services/uart_channel.h"
 #include "drivers/hardware.h"
 #include "services/at_parser.h"
@@ -55,12 +53,15 @@ void http_set_state(http_state_t st)
         uart_channel_send_str(UART_CH_SIM, "AT+HTTPINIT\r\n");
         break;
 
-    case HTTP_SET_CID:
-        uart_channel_send_str(UART_CH_SIM, "AT+HTTPPARA=\"CID\",1\r\n");
-        break;
-
     case HTTP_SET_UA:
-        uart_channel_send_format(UART_CH_SIM,"AT+HTTPPARA=\"UA\",\"%s\"\r\n",http_ctx.user_agent);
+        if (http_ctx.user_agent[0] == '\0')
+        {
+            http_set_state(HTTP_SET_URL);
+        }
+        else
+        {
+            uart_channel_send_format(UART_CH_SIM,"AT+HTTPPARA=\"UA\",\"%s\"\r\n",http_ctx.user_agent);
+        }
         break;
 
     case HTTP_SET_URL:
@@ -72,7 +73,6 @@ void http_set_state(http_state_t st)
         break;
 
     case HTTP_WAIT_DATA:
-        
         break;
 
     case HTTP_SEND_DATA:
@@ -132,7 +132,6 @@ void http_fsm_tick(event_queue_t *q)
     switch (http_state)
     {
     case HTTP_IDLE:
-        event_queue_pop(q, &evt);
         break;
 
     case HTTP_REQ_START:
@@ -142,7 +141,6 @@ void http_fsm_tick(event_queue_t *q)
     case HTTP_TERM_FIRST:
         if (event_queue_pop(q, &evt))
         {
-            
             if (evt.type == AT_EVENT_OK || evt.type == AT_EVENT_ERROR)
             {
                 http_set_state(HTTP_INIT);
@@ -150,7 +148,6 @@ void http_fsm_tick(event_queue_t *q)
         }
         else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
         {
-            
             http_set_state(HTTP_INIT);
         }
         break;
@@ -174,49 +171,28 @@ void http_fsm_tick(event_queue_t *q)
         break;
 
     case HTTP_WAIT_INIT:
-        
         if (HW_IsTimeout(&state_timestamp, 500))
         {
-            http_set_state(HTTP_SET_CID);
-        }
-        break;
-
-    case HTTP_SET_CID:
-        if (event_queue_pop(q, &evt))
-        {
-            if (evt.type == AT_EVENT_OK)
-            {
-                http_set_state(HTTP_SET_UA);
-            }
-            else if (evt.type == AT_EVENT_ERROR)
-            {
-               
-                http_set_state(HTTP_SET_UA);
-            }
-        }
-        else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
-        {
-            
             http_set_state(HTTP_SET_UA);
         }
         break;
 
     case HTTP_SET_UA:
+        if (http_ctx.user_agent[0] == '\0')
+        {
+            http_set_state(HTTP_SET_URL);
+            break;
+        }
+
         if (event_queue_pop(q, &evt))
         {
-            if (evt.type == AT_EVENT_OK)
+            if (evt.type == AT_EVENT_OK || evt.type == AT_EVENT_ERROR)
             {
-                http_set_state(HTTP_SET_URL);
-            }
-            else if (evt.type == AT_EVENT_ERROR)
-            {
-               
                 http_set_state(HTTP_SET_URL);
             }
         }
         else if (HW_IsTimeout(&state_timestamp, HTTP_CMD_TIMEOUT_MS))
         {
-            
             http_set_state(HTTP_SET_URL);
         }
         break;
@@ -320,7 +296,8 @@ void http_fsm_tick(event_queue_t *q)
             }
             else if (evt.type == AT_EVENT_HTTPREAD_DATA)
             {
-                size_t chunk_len = strlen(evt.line);
+                // Dùng length từ parser (value1) thay vì strlen() cho binary data
+                size_t chunk_len = (evt.value1 > 0) ? (size_t)evt.value1 : strlen(evt.line);
                 if (chunk_len == 0)
                     break;
 
@@ -333,21 +310,34 @@ void http_fsm_tick(event_queue_t *q)
 
                     if (copy_len > 0)
                     {
+                        // Copy binary data, không thêm \n
                         memcpy(&http_ctx.response[http_ctx.resp_pos], evt.line, copy_len);
                         http_ctx.resp_pos += (uint16_t)copy_len;
- 
-                        if (http_ctx.resp_pos < sizeof(http_ctx.response) - 1)
-                        {
-                            http_ctx.response[http_ctx.resp_pos++] = '\n';
-                        }
                     }
 
                     http_ctx.response[http_ctx.resp_pos] = '\0';
                 }
+                
+                // Debug: log khi nhận data
+                uart_channel_send_format(UART_CH_DEBUG, "[HTTP FSM] received %u bytes, total %u/%u, pos=%u\r\n",
+                    (unsigned)chunk_len, http_ctx.resp_received, http_ctx.resp_len, http_ctx.resp_pos);
+                
+                // Nếu đã nhận đủ data, tự động chuyển sang TERM
+                if (http_ctx.resp_received >= http_ctx.resp_len && http_ctx.resp_len > 0)
+                {
+                    uart_channel_send_str(UART_CH_DEBUG, "[HTTP FSM] All data received, moving to TERM\r\n");
+                    http_set_state(HTTP_TERM);
+                }
             }
             else if (evt.type == AT_EVENT_OK)
             {
-                http_set_state(HTTP_TERM);
+                // Chỉ chuyển sang TERM khi đã nhận đủ data
+                // (có thể AT_EVENT_OK đến trước khi nhận hết AT_EVENT_HTTPREAD_DATA)
+                if (http_ctx.resp_received >= http_ctx.resp_len || http_ctx.resp_len == 0)
+                {
+                    http_set_state(HTTP_TERM);
+                }
+                // Nếu chưa đủ, tiếp tục đợi AT_EVENT_HTTPREAD_DATA
             }
             else if (evt.type == AT_EVENT_ERROR)
             {
@@ -373,7 +363,6 @@ void http_fsm_tick(event_queue_t *q)
             http_fail(HTTP_ERROR_TIMEOUT);
         }
         break;
-
         
     case HTTP_DONE:
     case HTTP_ERROR:

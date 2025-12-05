@@ -1,8 +1,5 @@
 #ifndef __HTTP_CALLBACK_H__
 #define __HTTP_CALLBACK_H__
-#include "drivers/hardware.h"
-#include <stdbool.h>
-#include <string.h>
 
 typedef struct
 {
@@ -11,3 +8,4 @@ typedef struct
 } http_callback_t;
 
 #endif //__HTTP_CALLBACK_H__
+
