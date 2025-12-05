@@ -43,16 +43,16 @@ bool http_parse_line(const char *line, at_event_t *evt)
         
         if (length == 0 && httpread_body_pending)
         {
-            
+        
             if (httpread_remaining == 0)
             {
                 httpread_body_pending = false;
                 return false;  
             }
-           
+            
             return false;
         }
-        
+    
         evt->type = AT_EVENT_HTTPREAD_HEADER;
         evt->value1 = length;
         httpread_body_pending = true;
@@ -65,9 +65,14 @@ bool http_parse_line(const char *line, at_event_t *evt)
     {
         if (strcmp(line, "OK") == 0)
         {
+            /* Kết thúc HTTPREAD: phát OK để FSM biết lần đọc đã xong */
             httpread_body_pending = false;
             httpread_remaining = 0;
-            return false;
+            evt->type = AT_EVENT_OK;
+            evt->value1 = 0;
+            evt->value2 = 0;
+            evt->line[0] = '\0';
+            return true;
         }
 
         evt->type = AT_EVENT_HTTPREAD_DATA;

@@ -131,17 +131,31 @@ static void ota_handle_http_done(int status, const char *body)
     }
 
     const uint8_t *payload = (const uint8_t *)body;
-    // Dùng http_ctx.resp_pos thay vì strlen() vì binary data có thể chứa null bytes
     extern http_context_t http_ctx;
+    extern bool ota_is_busy(void);
+
+    // Nếu đang OTA streaming, kích thước thực là resp_received (đã stream thẳng xuống flash)
     uint32_t payload_len = (uint32_t)http_ctx.resp_pos;
+    if (ota_is_busy())
+    {
+        payload_len = (uint32_t)http_ctx.resp_received;
+    }
 
     uart_channel_send_format(UART_CH_DEBUG, "[OTA] payload_len=%lu (from resp_pos)\r\n", (unsigned long)payload_len);
 
-//    if (payload_len == 0U)
-//    {
-//        ota_complete(OTA_ERROR_INVALID_SIZE, false);
-//        return;
-//    }
+    // Nếu đang stream OTA, dữ liệu đã ghi xong trong quá trình HTTPREAD, không ghi lại
+    if (ota_is_busy())
+    {
+        flash_writer_finish();
+
+        ota_ctx.downloaded_bytes = payload_len;
+        ota_ctx.written_bytes = payload_len;
+        ota_ctx.firmware_size = payload_len;
+        ota_ctx.firmware_crc = 0; // TODO: tính CRC trên flash sau khi tải xong
+
+        ota_complete(OTA_ERROR_NONE, true);
+        return;
+    }
 
     if (!flash_writer_write(payload, payload_len))
     {

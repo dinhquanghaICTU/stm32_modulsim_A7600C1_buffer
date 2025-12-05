@@ -89,6 +89,7 @@ void sim_fsm_tick(event_queue_t *q)
     case SIM_STATE_OFF:
     	onModulSim();
         sim_set_state(SIM_STATE_POWERING_ON);
+        uart_channel_send_str(UART_CH_DEBUG,"[Main] dang bat modul \r\n");
         break;
 
     case SIM_STATE_POWERING_ON:

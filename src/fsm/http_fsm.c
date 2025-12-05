@@ -10,6 +10,7 @@ extern http_callback_t *http_cb;
 
 static http_state_t http_state = HTTP_IDLE;
 static uint32_t state_timestamp = 0;
+static bool ota_read_pending = false; /* chờ OK để đọc chunk tiếp */
 
 #define HTTP_CMD_TIMEOUT_MS      4000U
 #define HTTP_ACTION_TIMEOUT_MS  15000U
@@ -86,6 +87,7 @@ void http_set_state(http_state_t st)
             uart_channel_send_str(UART_CH_SIM, "AT+HTTPACTION=0\r\n"); 
         http_state = HTTP_WAIT_ACTION;
         state_timestamp = HW_GetTickMs();
+        ota_read_pending = false;
         break;
 
     case HTTP_WAIT_ACTION:
@@ -94,14 +96,21 @@ void http_set_state(http_state_t st)
     case HTTP_READ:
         if (http_ctx.resp_len > 0)
         {
-            uart_channel_send_format(UART_CH_SIM,"AT+HTTPREAD=0,%u\r\n",http_ctx.resp_len);
+            uint32_t first_chunk = http_ctx.resp_len;
+            extern bool ota_is_busy(void);
+            if (ota_is_busy() && first_chunk > 128)
+                first_chunk = 128; /* đọc chunk nhỏ cho OTA */
+            uart_channel_send_format(UART_CH_SIM,"AT+HTTPREAD=0,%lu\r\n",(unsigned long)first_chunk);
+            uart_channel_send_format(UART_CH_DEBUG,"[HTTP FSM] send HTTPREAD offset=0 len=%lu\r\n", (unsigned long)first_chunk);
         }
         else
         {
             uart_channel_send_str(UART_CH_SIM, "AT+HTTPREAD\r\n");
+            uart_channel_send_str(UART_CH_DEBUG,"[HTTP FSM] send HTTPREAD (no len)\r\n");
         }
         http_state = HTTP_WAIT_READ;
         state_timestamp = HW_GetTickMs();
+        ota_read_pending = false;
         break;
 
     case HTTP_WAIT_READ:
@@ -261,6 +270,10 @@ void http_fsm_tick(event_queue_t *q)
                 http_ctx.resp_pos = 0;
                 http_ctx.response[0] = '\0';
 
+                uart_channel_send_format(UART_CH_DEBUG,
+                    "[HTTP FSM] ACTION status=%u, len=%u\r\n",
+                    http_ctx.http_status, http_ctx.resp_len);
+
                 if (http_ctx.http_status >= 200 && http_ctx.http_status < 400)
                 {
                     if (http_ctx.resp_len == 0)
@@ -289,14 +302,61 @@ void http_fsm_tick(event_queue_t *q)
         {
             if (evt.type == AT_EVENT_HTTPREAD_HEADER)
             {
-                http_ctx.resp_len = (uint16_t)evt.value1;
-                http_ctx.resp_received = 0;
-                http_ctx.resp_pos = 0;
-                http_ctx.response[0] = '\0';
+                extern bool ota_is_busy(void);
+                
+                if (!ota_is_busy() || http_ctx.resp_received == 0)
+                {
+                    http_ctx.resp_received = 0;
+                    http_ctx.resp_pos = 0;
+                    http_ctx.response[0] = '\0';
+                }
+                
+                if (evt.value1 > 0)
+                {
+                    
+                    if (http_ctx.resp_len == 0)
+                    {
+                        http_ctx.resp_len = (uint16_t)evt.value1;
+                    }
+                }
+                else if (evt.value1 == 0)
+                {
+                    extern bool ota_is_busy(void);
+                    if (ota_is_busy())
+                    {
+                        /* Nếu đã nhận đủ, kết thúc luôn mà không chờ OK để tránh timeout */
+                        if (http_ctx.resp_received >= http_ctx.resp_len && http_ctx.resp_len > 0)
+                        {
+                            uart_channel_send_str(UART_CH_DEBUG, "[HTTP FSM] OTA: All data received after header 0, moving to TERM\r\n");
+                            http_set_state(HTTP_TERM);
+                        }
+                        else if (http_ctx.resp_len > http_ctx.resp_received)
+                        {
+                            uint16_t remaining = http_ctx.resp_len - http_ctx.resp_received;
+                            uint16_t next_chunk = remaining;
+                            if (next_chunk > 128)
+                                next_chunk = 128; /* đọc theo block nhỏ để modem dễ chịu */
+                            uart_channel_send_format(UART_CH_DEBUG,
+                                "[HTTP FSM] OTA: header len=0, still need %u bytes, reading next chunk size %u from offset %u\r\n",
+                                remaining, next_chunk, http_ctx.resp_received);
+                            uart_channel_send_format(UART_CH_SIM, "AT+HTTPREAD=%u,%u\r\n",
+                                http_ctx.resp_received, next_chunk);
+                            state_timestamp = HW_GetTickMs();
+                        }
+                    }
+                }
             }
             else if (evt.type == AT_EVENT_HTTPREAD_DATA)
             {
-                // Dùng length từ parser (value1) thay vì strlen() cho binary data
+                
+                extern bool ota_is_busy(void);
+                if (ota_is_busy())
+                {
+                    
+                    break;
+                }
+                
+                
                 size_t chunk_len = (evt.value1 > 0) ? (size_t)evt.value1 : strlen(evt.line);
                 if (chunk_len == 0)
                     break;
@@ -310,7 +370,7 @@ void http_fsm_tick(event_queue_t *q)
 
                     if (copy_len > 0)
                     {
-                        // Copy binary data, không thêm \n
+                        
                         memcpy(&http_ctx.response[http_ctx.resp_pos], evt.line, copy_len);
                         http_ctx.resp_pos += (uint16_t)copy_len;
                     }
@@ -318,11 +378,11 @@ void http_fsm_tick(event_queue_t *q)
                     http_ctx.response[http_ctx.resp_pos] = '\0';
                 }
                 
-                // Debug: log khi nhận data
+                
                 uart_channel_send_format(UART_CH_DEBUG, "[HTTP FSM] received %u bytes, total %u/%u, pos=%u\r\n",
                     (unsigned)chunk_len, http_ctx.resp_received, http_ctx.resp_len, http_ctx.resp_pos);
                 
-                // Nếu đã nhận đủ data, tự động chuyển sang TERM
+                
                 if (http_ctx.resp_received >= http_ctx.resp_len && http_ctx.resp_len > 0)
                 {
                     uart_channel_send_str(UART_CH_DEBUG, "[HTTP FSM] All data received, moving to TERM\r\n");
@@ -331,13 +391,36 @@ void http_fsm_tick(event_queue_t *q)
             }
             else if (evt.type == AT_EVENT_OK)
             {
-                // Chỉ chuyển sang TERM khi đã nhận đủ data
-                // (có thể AT_EVENT_OK đến trước khi nhận hết AT_EVENT_HTTPREAD_DATA)
-                if (http_ctx.resp_received >= http_ctx.resp_len || http_ctx.resp_len == 0)
+                
+                extern bool ota_is_busy(void);
+                if (ota_is_busy())
                 {
-                    http_set_state(HTTP_TERM);
+                    
+                    if (http_ctx.resp_received >= http_ctx.resp_len && http_ctx.resp_len > 0)
+                    {
+                        uart_channel_send_str(UART_CH_DEBUG, "[HTTP FSM] OTA: All data received, moving to TERM\r\n");
+                        http_set_state(HTTP_TERM);
+                    }
+                    else if (ota_read_pending && http_ctx.resp_len > http_ctx.resp_received)
+                    {
+                        uint16_t remaining = http_ctx.resp_len - http_ctx.resp_received;
+                        uart_channel_send_format(UART_CH_DEBUG,
+                            "[HTTP FSM] OTA: Still need %u bytes, reading next chunk from offset %u (after OK)...\r\n",
+                            remaining, http_ctx.resp_received);
+                        uart_channel_send_format(UART_CH_SIM, "AT+HTTPREAD=%u,%u\r\n",
+                            http_ctx.resp_received, remaining);
+                        ota_read_pending = false;
+                        state_timestamp = HW_GetTickMs();
+                    }
                 }
-                // Nếu chưa đủ, tiếp tục đợi AT_EVENT_HTTPREAD_DATA
+                else
+                {
+                    
+                    if (http_ctx.resp_received >= http_ctx.resp_len || http_ctx.resp_len == 0)
+                    {
+                        http_set_state(HTTP_TERM);
+                    }
+                }
             }
             else if (evt.type == AT_EVENT_ERROR)
             {
